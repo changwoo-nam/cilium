@@ -803,6 +803,14 @@ ct_recreate4:
 		if (!info)
 			goto skip_egress_gateway;
 
+		/* If the packet is a reply or is related, it means that outside
+		 * has initiated the connection, and so we should skip egress
+		 * gateway, since an egress policy is only matching connections
+		 * originating from a pod.
+		 */
+		if (reason == CT_REPLY || reason == CT_RELATED)
+			goto skip_egress_gateway;
+
 		/* Encap and redirect the packet to egress gateway node through a tunnel.
 		 * Even if the tunnel endpoint is on the same host, follow the same data
 		 * path to be consistent. In future, it can be optimized by directly
