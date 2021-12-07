@@ -18,6 +18,7 @@ import (
 	"sync"
 	"text/tabwriter"
 	"time"
+	"unicode"
 
 	"github.com/cilium/cilium/api/v1/models"
 	cnpv2 "github.com/cilium/cilium/pkg/k8s/apis/cilium.io/v2"
@@ -92,6 +93,7 @@ var (
 		"hubble.relay.image.repository": "k8s1:5000/cilium/hubble-relay",
 		"hubble.relay.image.tag":        "latest",
 		"hubble.relay.image.useDigest":  "false",
+		"hubble.eventBufferCapacity":    "65535",
 		"debug.enabled":                 "true",
 		"k8s.requireIPv4PodCIDR":        "true",
 		"pprof.enabled":                 "true",
@@ -355,7 +357,7 @@ func CreateKubectl(vmName string, log *logrus.Entry) (k *Kubectl) {
 		}
 		k.setBasePath()
 		if err := k.ensureKubectlVersion(); err != nil {
-			ginkgoext.Failf("failed to ensure kubectl version")
+			ginkgoext.Failf("failed to ensure kubectl version: %s", err)
 		}
 	}
 
@@ -2370,6 +2372,7 @@ func (kub *Kubectl) overwriteHelmOptions(options map[string]string) error {
 
 		if RunsOn419OrLaterKernel() {
 			opts["bpf.masquerade"] = "true"
+			opts["enableIPv6Masquerade"] = "false"
 		}
 
 		for key, value := range opts {
@@ -4464,7 +4467,12 @@ func (kub *Kubectl) ensureKubectlVersion() error {
 		return err
 	}
 
-	versionstring := fmt.Sprintf("%s.%s", v.ClientVersion.Major, v.ClientVersion.Minor)
+	// For some -rc versions we observe minor versions with trailing non-numeric characters,
+	// e.g. minor: "23+". Strip these.
+	minor := strings.TrimRightFunc(v.ClientVersion.Minor, func(r rune) bool {
+		return !unicode.IsNumber(r)
+	})
+	versionstring := fmt.Sprintf("%s.%s", v.ClientVersion.Major, minor)
 	if versionstring == GetCurrentK8SEnv() {
 		//version available on host is matching current env
 		return nil
@@ -4475,9 +4483,17 @@ func (kub *Kubectl) ensureKubectlVersion() error {
 		return err
 	}
 	path := path.Join(GetKubectlPath(), "kubectl")
+	rcVersion := fmt.Sprintf("v%s.0-rc.0", GetCurrentK8SEnv())
+	switch GetCurrentK8SEnv() {
+	// These versions never released a ".0". Only since 1.19 Kubernetes started
+	// to release RC starting from '0'. We can then use the '.0' release for
+	// these versions.
+	case "1.16", "1.17", "1.18":
+		rcVersion = fmt.Sprintf("v%s.0", GetCurrentK8SEnv())
+	}
 	res = kub.Exec(
-		fmt.Sprintf("curl --output %s https://storage.googleapis.com/kubernetes-release/release/v%s.0/bin/linux/amd64/kubectl && chmod +x %s",
-			path, GetCurrentK8SEnv(), path))
+		fmt.Sprintf("curl --output %s https://storage.googleapis.com/kubernetes-release/release/%s/bin/linux/amd64/kubectl && chmod +x %s",
+			path, rcVersion, path))
 	if !res.WasSuccessful() {
 		return fmt.Errorf("failed to download kubectl")
 	}

@@ -362,7 +362,7 @@ var _ = SkipDescribeIf(helpers.RunsOn54Kernel, "K8sServicesTest", func() {
 				ciliumDelService(kubectl, 20069)
 			})
 
-			It("Checks service on same node", func() {
+			SkipItIf(helpers.SkipQuarantined, "Checks service on same node", func() {
 				status := kubectl.ExecInHostNetNS(context.TODO(), ni.k8s1NodeName,
 					helpers.CurlFail(`"http://[%s]/"`, demoClusterIPv6))
 				status.ExpectSuccess("cannot curl to service IP from host")
@@ -658,7 +658,7 @@ Secondary Interface %s :: IPv4: (%s, %s), IPv6: (%s, %s)`, helpers.DualStackSupp
 		})
 
 		SkipContextIf(func() bool {
-			return helpers.RunsWithKubeProxyReplacement() || helpers.GetCurrentIntegration() != ""
+			return helpers.RunsWithKubeProxyReplacement() || helpers.GetCurrentIntegration() != "" || helpers.SkipQuarantined()
 		}, "IPv6 masquerading", func() {
 			var (
 				k8s1EndpointIPs map[string]string
@@ -1037,7 +1037,7 @@ Secondary Interface %s :: IPv4: (%s, %s), IPv6: (%s, %s)`, helpers.DualStackSupp
 					})
 				})
 
-				Context("Tests with direct routing", func() {
+				SkipContextIf(helpers.SkipQuarantined, "Tests with direct routing", func() {
 
 					var directRoutingOpts = map[string]string{
 						"tunnel":               "disabled",
@@ -1409,9 +1409,9 @@ Secondary Interface %s :: IPv4: (%s, %s), IPv6: (%s, %s)`, helpers.DualStackSupp
 
 				SkipItIf(func() bool {
 					// Quarantine when running with the third node as it's
-					// flaky. See #12511.
-					return helpers.GetCurrentIntegration() != "" ||
-						(helpers.SkipQuarantined() && helpers.ExistNodeWithoutCilium())
+					// flaky. See GH-12511.
+					// It's also flaky for IPv6 traffic, see GH-18072
+					return helpers.SkipQuarantined()
 				}, "Tests with secondary NodePort device", func() {
 					DeployCiliumOptionsAndDNS(kubectl, ciliumFilename, map[string]string{
 						"tunnel":               "disabled",
@@ -1580,12 +1580,11 @@ Secondary Interface %s :: IPv4: (%s, %s), IPv6: (%s, %s)`, helpers.DualStackSupp
 			By("Waiting until server is terminating")
 			ctx, cancel := context.WithCancel(context.Background())
 			res := kubectl.LogsStream(helpers.DefaultNamespace, serverPod, ctx)
-			Expect(res.WaitUntilMatch("terminating")).To(BeNil(),
-				"%s is not in the output after timeout", res.GetStdOut())
-			defer func() {
-				cancel()
-				res.WaitUntilFinish()
-			}()
+			find := "terminating"
+			Eventually(func() bool {
+				return strings.Contains(res.OutputPrettyPrint(), find)
+			}, 60*time.Second, time.Second).Should(BeTrue(), "[%s] is not in the output after timeout\n%s", find, res.Stdout())
+			defer cancel()
 		}
 
 		BeforeAll(func() {
@@ -1633,23 +1632,34 @@ Secondary Interface %s :: IPv4: (%s, %s), IPv6: (%s, %s)`, helpers.DualStackSupp
 			ctx, cancel := context.WithCancel(context.Background())
 			res := kubectl.LogsStream(helpers.DefaultNamespace, clientPod, ctx)
 			// Check if the client pod is able to get a response from the server once it's up and running
-			Expect(res.WaitUntilMatch("client received")).To(BeNil(),
-				"%s is not in the output after timeout", res.GetStdOut())
-			defer func() {
-				cancel()
-				res.WaitUntilFinish()
-			}()
+			find := "client received"
+			Eventually(func() bool {
+				return strings.Contains(res.OutputPrettyPrint(), find)
+			}, 60*time.Second, time.Second).Should(BeTrue(), "[%s] is not in the output after timeout\n%s", find, res.Stdout())
+			defer cancel()
 
 			terminateServiceEndpointPod()
 
+			By("Checking if client pod terminated gracefully")
+			ctx, cancel = context.WithCancel(context.Background())
+			res = kubectl.LogsStream(helpers.DefaultNamespace, clientPod, ctx)
+			// The log message indicates that the connectivity between client and
+			// server was intact even after the service endpoint pod was terminated,
+			// and that the client connection terminated gracefully.
+			find = "exiting on graceful termination"
+			Eventually(func() bool {
+				return strings.Contains(res.OutputPrettyPrint(), find)
+			}, 60*time.Second, time.Second).Should(BeTrue(), "[%s] is not in the output after timeout\n%s", find, res.Stdout())
+			defer cancel()
+
 			// The client pod exits with status code 0 on graceful termination.
-			By("Checking if client pod terminated successfully")
+			By("Checking if client pod exited successfully")
 			Eventually(func() string {
 				filter := `{.status.phase}`
 				status, err := kubectl.GetPods(helpers.DefaultNamespace, clientPod).Filter(filter)
 				Expect(err).Should(BeNil(), "Failed to get pod status %s", clientPod)
 				return status.String()
-			}, 30*time.Second, time.Second).Should(BeIdenticalTo("Succeeded"), "Unexpected pod status \n")
+			}, 15*time.Second, time.Second).Should(BeIdenticalTo("Succeeded"), "Unexpected pod status \n")
 		})
 
 		It("Checks if terminating service endpoint doesn't serve new connections", func() {
