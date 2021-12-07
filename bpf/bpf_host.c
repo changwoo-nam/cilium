@@ -977,7 +977,7 @@ handle_netdev(struct __ctx_buff *ctx, const bool from_host)
 __section("from-netdev")
 int from_netdev(struct __ctx_buff *ctx)
 {
-	int ret = CTX_ACT_OK;
+	int __maybe_unused ret = CTX_ACT_OK;
 	__u32 __maybe_unused vlan_id;
 
 #ifdef ENABLE_DSR_TUNL
