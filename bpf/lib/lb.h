@@ -1158,21 +1158,27 @@ lb4_select_backend_id(struct __ctx_buff *ctx,
 		      const struct ipv4_ct_tuple *tuple __maybe_unused,
 		      const struct lb4_service *svc)
 {
-	__u32 lb_selection_rule = 0;
-	__u32 slot = 0;
-	struct lb4_service *be = NULL;
+	__u32 __maybe_unused lb_selection_rule = 0;
+	__u32 __maybe_unused slot = 0;
+	struct lb4_service __maybe_unused *be = NULL;
 
-	lb_selection_rule = ctx_load_meta(ctx, CB_LB_SELECTION_RULE);
+#ifdef ENABLE_DSR_TUNL
+	if (lb4_svc_is_loadbalancer(svc) || lb4_svc_is_external_ip(svc)) {
+		lb_selection_rule = ctx_load_meta(ctx, CB_LB_SELECTION_RULE);
 
-	slot = (get_prandom_u32() % svc->local_count) + 1;
-	be = lb4_lookup_backend_slot(ctx, key, slot);
-	if (be) {
-		return be->backend_id;
+		if (svc->local_count > 0) {
+			slot = (get_prandom_u32() % svc->local_count) + 1;
+			be = lb4_lookup_backend_slot(ctx, key, slot);
+			if (be) {
+				return be->backend_id;
+			}
+		}
+
+		if (lb_selection_rule & LB_LOCAL_BACKEND_ONLY) {
+			return 0;
+		}
 	}
-
-	if (lb_selection_rule == LB_LOCAL_BACKEND_ONLY) {
-		return 0;
-	}
+#endif
 
 	return lb4_select_backend_id_internal(ctx, key, tuple, svc);
 }

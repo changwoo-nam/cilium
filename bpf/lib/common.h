@@ -631,7 +631,7 @@ enum {
 	CT_REOPENED,
 };
 
-#define LB_LOCAL_BACKEND_ONLY	0x0917
+#define LB_LOCAL_BACKEND_ONLY	0xFFA0
 
 /* Service flags (lb{4,6}_service->flags) */
 enum {

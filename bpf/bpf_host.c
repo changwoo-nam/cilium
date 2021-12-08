@@ -863,8 +863,8 @@ do_netdev(struct __ctx_buff *ctx, __u16 proto, const bool from_host)
 
 	bpf_clear_meta(ctx);
 
-	if (lb_selection_rule) {
-		ctx_store_meta(ctx, CB_LB_SELECTION_RULE, LB_LOCAL_BACKEND_ONLY);
+	if (lb_selection_rule & LB_LOCAL_BACKEND_ONLY) {
+		ctx_store_meta(ctx, CB_CT_STATE, LB_LOCAL_BACKEND_ONLY);
 	}
 
 	if (from_host) {
