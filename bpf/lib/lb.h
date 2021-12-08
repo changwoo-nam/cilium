@@ -1174,7 +1174,7 @@ lb4_select_backend_id(struct __ctx_buff *ctx,
 			}
 		}
 
-		if (lb_selection_rule & LB_LOCAL_BACKEND_ONLY) {
+		if ((lb_selection_rule & LB_LOCAL_BACKEND_ONLY) == LB_LOCAL_BACKEND_ONLY) {
 			return 0;
 		}
 	}

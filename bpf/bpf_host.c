@@ -842,7 +842,7 @@ do_netdev(struct __ctx_buff *ctx, __u16 proto, const bool from_host)
 {
 	__u32 __maybe_unused identity = 0;
 	__u32 __maybe_unused ipcache_srcid = 0;
-	__u32 lb_selection_rule = 0;
+	__u32 __maybe_unused lb_selection_rule = 0;
 	int ret;
 
 #ifdef ENABLE_IPSEC
@@ -859,13 +859,17 @@ do_netdev(struct __ctx_buff *ctx, __u16 proto, const bool from_host)
 	}
 #endif
 
+#ifdef ENABLE_DSR_TUNL
 	lb_selection_rule = ctx_load_meta(ctx, CB_LB_SELECTION_RULE);
+#endif
 
 	bpf_clear_meta(ctx);
 
-	if (lb_selection_rule & LB_LOCAL_BACKEND_ONLY) {
+#ifdef ENABLE_DSR_TUNL
+	if ((lb_selection_rule & LB_LOCAL_BACKEND_ONLY) == LB_LOCAL_BACKEND_ONLY) {
 		ctx_store_meta(ctx, CB_CT_STATE, LB_LOCAL_BACKEND_ONLY);
 	}
+#endif
 
 	if (from_host) {
 		int trace = TRACE_FROM_HOST;
