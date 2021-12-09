@@ -2270,6 +2270,7 @@ static __always_inline int handle_nat_fwd(struct __ctx_buff *ctx)
 	return ret;
 }
 
+#ifdef ENABLE_DSR_TUNL
 static __always_inline int decap_ipv4_needed(struct __ctx_buff *ctx, bool *decap_ipv4_outer)
 {
 	void *data, *data_end;
@@ -2374,6 +2375,7 @@ static __always_inline int decap_ipip(struct __ctx_buff *ctx)
 
 	return ret;
 }
+#endif
 
 #endif /* ENABLE_NODEPORT */
 #endif /* __NODEPORT_H_ */
