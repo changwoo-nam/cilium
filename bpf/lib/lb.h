@@ -267,11 +267,11 @@ bool lb6_svc_has_src_range_check(const struct lb6_service *svc __maybe_unused)
 
 static __always_inline bool lb_skip_l4_dnat(void)
 {
-#if defined(ENABLE_DSR_TUNL)
+#ifdef ENABLE_DSR_TUNL
 	return false;
 #else
 	return DSR_XLATE_MODE == DSR_XLATE_FRONTEND;
-#endif
+#endif /* ENABLE_DSR_TUNL */
 }
 
 static __always_inline

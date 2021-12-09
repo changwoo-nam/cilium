@@ -867,7 +867,7 @@ do_netdev(struct __ctx_buff *ctx, __u16 proto, const bool from_host)
 
 #ifdef ENABLE_DSR_TUNL
 	if ((lb_selection_rule & LB_LOCAL_BACKEND_ONLY) == LB_LOCAL_BACKEND_ONLY) {
-		ctx_store_meta(ctx, CB_CT_STATE, LB_LOCAL_BACKEND_ONLY);
+		ctx_store_meta(ctx, CB_LB_SELECTION_RULE, LB_LOCAL_BACKEND_ONLY);
 	}
 #endif
 

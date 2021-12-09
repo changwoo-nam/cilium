@@ -2375,7 +2375,7 @@ static __always_inline int decap_ipip(struct __ctx_buff *ctx)
 
 	return ret;
 }
-#endif
+#endif /* ENABLE_DSR_TUNL */
 
 #endif /* ENABLE_NODEPORT */
 #endif /* __NODEPORT_H_ */
