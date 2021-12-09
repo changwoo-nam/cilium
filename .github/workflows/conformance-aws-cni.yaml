@@ -148,6 +148,7 @@ jobs:
             --operator-image=quay.io/${{ github.repository_owner }}/operator-aws-ci \
             --version=${SHA} \
             --wait=false \
+            --rollback=false \
             --config monitor-aggregation=none"
           echo ::set-output name=cilium_install_defaults::${CILIUM_INSTALL_DEFAULTS}
           echo ::set-output name=sha::${SHA}
@@ -295,7 +296,7 @@ jobs:
 
       - name: Upload artifacts
         if: ${{ !success() }}
-        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074
+        uses: actions/upload-artifact@da838ae9595ac94171fa2d4de5a2f117b3e7ac32
         with:
           name: cilium-sysdump-out.zip
           path: cilium-sysdump-out.zip

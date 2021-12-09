@@ -145,6 +145,7 @@ jobs:
             --operator-image=quay.io/${{ github.repository_owner }}/operator-generic-ci \
             --version=${SHA} \
             --wait=false \
+            --rollback=false \
             --config monitor-aggregation=none"
           HUBBLE_ENABLE_DEFAULTS="--relay-image=quay.io/${{ github.repository_owner }}/hubble-relay-ci \
             --relay-version=${SHA}"
@@ -172,7 +173,7 @@ jobs:
           cilium version
 
       - name: Set up gcloud CLI
-        uses: google-github-actions/setup-gcloud@daadedc81d5f9d3c06d2c92f49202a3cc2b919ba
+        uses: google-github-actions/setup-gcloud@a45a0825993ace67ae6e11cf3011b3e7d6795f82
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
           service_account_key: ${{ secrets.GCP_PR_SA_KEY }}
@@ -329,7 +330,7 @@ jobs:
 
       - name: Upload artifacts
         if: ${{ !success() }}
-        uses: actions/upload-artifact@27121b0bdffd731efa15d66772be8dc71245d074
+        uses: actions/upload-artifact@da838ae9595ac94171fa2d4de5a2f117b3e7ac32
         with:
           name: cilium-sysdump-out.zip
           path: cilium-sysdump-out.zip
