@@ -53,10 +53,8 @@ concurrency:
     ${{
       (github.event_name == 'schedule' && github.sha) ||
       (github.event_name == 'issue_comment' && (
-        startsWith(github.event.comment.body, 'ci-awscni-1.10') ||
-        startsWith(github.event.comment.body, '/ci-awscni-1.10') ||
-        startsWith(github.event.comment.body, 'test-backport-1.10') ||
-        startsWith(github.event.comment.body, '/test-backport-1.10')
+        github.event.comment.body == '/ci-awscni-1.10' ||
+        github.event.comment.body == '/test-backport-1.10'
       ) && github.event.issue.number) ||
       (github.event_name == 'pull_request' && github.event.pull_request.number)
     }}
@@ -73,10 +71,8 @@ jobs:
     name: Deduce required tests from code changes
     if: |
       (github.event_name == 'issue_comment' && (
-        startsWith(github.event.comment.body, 'ci-awscni-1.10') ||
-        startsWith(github.event.comment.body, '/ci-awscni-1.10') ||
-        startsWith(github.event.comment.body, 'test-backport-1.10') ||
-        startsWith(github.event.comment.body, '/test-backport-1.10')
+        github.event.comment.body == '/ci-awscni-1.10' ||
+        github.event.comment.body == '/test-backport-1.10'
       )) ||
       (github.event_name == 'schedule' && github.repository == 'cilium/cilium') ||
       github.event_name == 'pull_request'
@@ -115,10 +111,8 @@ jobs:
     needs: check_changes
     if: |
       (github.event_name == 'issue_comment' && (
-        startsWith(github.event.comment.body, 'ci-awscni-1.10') ||
-        startsWith(github.event.comment.body, '/ci-awscni-1.10') ||
-        startsWith(github.event.comment.body, 'test-backport-1.10') && needs.check_changes.outputs.tested == 'true' ||
-        startsWith(github.event.comment.body, '/test-backport-1.10') && needs.check_changes.outputs.tested == 'true'
+        github.event.comment.body == '/ci-awscni-1.10' ||
+        (github.event.comment.body == '/test-backport-1.10' && needs.check_changes.outputs.tested == 'true')
       )) ||
       (github.event_name == 'schedule' && github.repository == 'cilium/cilium') ||
       github.event_name == 'pull_request'
@@ -140,14 +134,6 @@ jobs:
             OWNER=${{ github.sha }}
           fi
 
-          CILIUM_INSTALL_DEFAULTS="--cluster-name=${{ env.clusterName }} \
-            --agent-image=quay.io/${{ github.repository_owner }}/cilium-ci \
-            --operator-image=quay.io/${{ github.repository_owner }}/operator-aws-ci \
-            --version=${SHA} \
-            --wait=false \
-            --rollback=false \
-            --config monitor-aggregation=none"
-          echo ::set-output name=cilium_install_defaults::${CILIUM_INSTALL_DEFAULTS}
           echo ::set-output name=sha::${SHA}
           echo ::set-output name=owner::${OWNER}
 

@@ -99,7 +99,7 @@ var _ = SkipDescribeIf(helpers.RunsOn54Kernel, "K8sServicesTest", func() {
 		ni.k8s1NodeName, ni.k8s1IP = kubectl.GetNodeInfo(helpers.K8s1)
 		ni.k8s2NodeName, ni.k8s2IP = kubectl.GetNodeInfo(helpers.K8s2)
 		if helpers.ExistNodeWithoutCilium() {
-			ni.outsideNodeName, ni.outsideIP = kubectl.GetNodeInfo(helpers.GetNodeWithoutCilium())
+			ni.outsideNodeName, ni.outsideIP = kubectl.GetNodeInfo(helpers.GetFirstNodeWithoutCilium())
 		}
 
 		ni.privateIface, err = kubectl.GetPrivateIface()
@@ -1552,7 +1552,8 @@ Secondary Interface %s :: IPv4: (%s, %s), IPv6: (%s, %s)`, helpers.DualStackSupp
 	SkipContextIf(func() bool {
 		// The graceful termination feature depends on enabling an alpha feature
 		// EndpointSliceTerminatingCondition in Kubernetes.
-		return helpers.SkipK8sVersions("<1.20.0") || helpers.RunsOnGKE() || helpers.RunsOnEKS()
+		return helpers.SkipK8sVersions("<1.20.0") || helpers.RunsOnGKE() || helpers.RunsOnEKS() ||
+			helpers.RunsWithoutKubeProxy()
 	}, "Checks graceful termination of service endpoints", func() {
 		const (
 			clientPodLabel = "app=graceful-term-client"
